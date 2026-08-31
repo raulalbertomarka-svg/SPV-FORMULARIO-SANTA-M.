@@ -1012,7 +1012,6 @@
 
   function onScanSuccess(decodedText){
     if (!scanning) return; // evita lecturas duplicadas
-    scanning = false;
     cerrarScanner();
     clearTimeout(debounceTimer);
     inputBusqueda.value = decodedText.trim();
@@ -1021,11 +1020,19 @@
 
   function cerrarScanner(){
     scannerOverlay.classList.remove('visible');
-    if (html5QrCode && scanning){
-      html5QrCode.stop().catch(function(){ /* ignorar */ });
-    }
+    const habiaQueDetener = !!(html5QrCode && scanning);
     scanning = false;
-    document.getElementById('reader').innerHTML = '';
+
+    if (habiaQueDetener){
+      // Esperamos a que la cámara se libere de verdad antes de limpiar
+      // el visor; si no, el próximo "Escanear código" puede fallar
+      // porque el navegador todavía cree que la cámara está en uso.
+      html5QrCode.stop()
+        .catch(function(){ /* ya estaba detenida, no pasa nada */ })
+        .then(function(){ document.getElementById('reader').innerHTML = ''; });
+    } else {
+      document.getElementById('reader').innerHTML = '';
+    }
   }
 
   btnEscanear.addEventListener('click', function(){
@@ -1135,7 +1142,11 @@
       codigo: state.producto.codigo,
       stockFisico: Number(stockFisicoRaw),
       motivo: motivo,
-      observacion: observacion
+      observacion: observacion,
+      // Identificador único de este intento de guardado: si el pedido
+      // se reenvía solo (por red o por el navegador), el servidor lo
+      // reconoce y no duplica la fila.
+      idempotencyKey: 'save_' + Date.now() + '_' + Math.random().toString(36).slice(2)
     };
 
     guardando = true;
