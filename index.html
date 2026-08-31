@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Control de stock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary: #163C2E;
+    --primary-dark: #0E2B21;
+    --primary-light: #1E5240;
+    --bg: #F3F5F3;
+    --white: #FFFFFF;
+    --border: #DFE4E1;
+    --text: #1C2622;
+    --text-muted: #62716B;
+    --danger: #B3261E;
+    --danger-bg: #FBEBEA;
+    --warning: #A15C00;
+    --warning-bg: #FDF1E0;
+    --success: #1E7B45;
+    --success-bg: #E8F5EC;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --shadow: 0 2px 14px rgba(14, 43, 33, 0.08);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body{
+    padding-bottom: 96px; /* espacio para la barra de acción fija */
+  }
+
+  .app{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    background: var(--primary);
+    color: var(--white);
+    padding: 22px 20px 20px;
+  }
+  header h1{
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  header p{
+    margin: 0;
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.4;
+  }
+
+  /* ---------- BARRA DE CONTEXTO (supervisor / sucursal) ---------- */
+  .context-bar{
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--primary-light);
+    color: var(--white);
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  .context-bar.visible{ display: flex; }
+  .context-bar .info{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .context-bar .info b{ font-weight: 600; }
+  .context-bar button{
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.14);
+    border: none;
+    color: var(--white);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+
+  main{
+    padding: 18px 16px 24px;
+  }
+
+  .screen{ display: none; }
+  .screen.active{ display: block; }
+
+  /* ---------- CARDS ---------- */
+  .card{
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h2{
+    margin: 0 0 4px;
+    font-size: 16.5px;
+    font-weight: 700;
+  }
+  .card .card-sub{
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* ---------- FORM ELEMENTS ---------- */
+  label{
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .field{ margin-bottom: 16px; }
+  .field:last-child{ margin-bottom: 0; }
+
+  input[type="text"],
+  input[type="number"],
+  select,
+  textarea{
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 13px 14px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    color: var(--text);
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color: var(--primary);
+  }
+  textarea{
+    resize: vertical;
+    min-height: 72px;
+  }
+  select{
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%2362716B' stroke-width='2' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 38px;
+  }
+  .hint{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 700;
+    padding: 15px 18px;
+    cursor: pointer;
+    transition: opacity .15s ease;
+  }
+  .btn:disabled{ opacity: 0.5; cursor: not-allowed; }
+  .btn:active:not(:disabled){ opacity: 0.85; }
+
+  .btn-primary{ background: var(--primary); color: var(--white); }
+  .btn-scan{ background: var(--primary-light); color: var(--white); }
+  .btn-outline{
+    background: var(--white);
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+  }
+  .btn-text{
+    background: none;
+    color: var(--primary);
+    font-weight: 600;
+    padding: 8px 0;
+    width: auto;
+  }
+
+  .divider{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    margin: 14px 0;
+  }
+  .divider::before, .divider::after{
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .search-row{
+    display: flex;
+    gap: 8px;
+  }
+  .search-row input{ flex: 1; }
+  .search-row button{
+    flex-shrink: 0;
+    width: auto;
+    padding: 0 16px;
+  }
+
+  /* ---------- RESULTADOS DE BÚSQUEDA ---------- */
+  .result-list{
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .result-item{
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .result-item .desc{
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .result-item .meta{
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .empty-note{
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    padding: 10px 4px;
+  }
+
+  /* ---------- FICHA DE PRODUCTO ---------- */
+  .readonly-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .readonly-item{
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .readonly-item:last-child{ border-bottom: none; }
+  .readonly-item .k{ color: var(--text-muted); }
+  .readonly-item .v{ font-weight: 600; text-align: right; }
+
+  .badge{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .badge-correcto{ background: var(--success-bg); color: var(--success); }
+  .badge-faltante{ background: var(--danger-bg); color: var(--danger); }
+  .badge-sobrante{ background: var(--warning-bg); color: var(--warning); }
+
+  .diff-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 4px;
+  }
+  .diff-row .diff-value{ font-size: 14px; color: var(--text-muted); }
+
+  /* ---------- BARRA DE ACCIÓN FIJA ---------- */
+  .action-bar{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    z-index: 20;
+  }
+
+  /* ---------- OVERLAY DE CARGA ---------- */
+  .loading-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(14,43,33,0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+  .loading-overlay.visible{ display: flex; }
+  .spinner-box{
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+  }
+  .spinner{
+    width: 20px; height: 20px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* ---------- TOASTS ---------- */
+  #toast-container{
+    position: fixed;
+    top: 14px;
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 60;
+    pointer-events: none;
+  }
+  .toast{
+    max-width: 90%;
+    background: var(--text);
+    color: var(--white);
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .toast.show{ opacity: 1; transform: translateY(0); }
+  .toast.success{ background: var(--success); }
+  .toast.error{ background: var(--danger); }
+
+  /* ---------- MODAL DE CÁMARA ---------- */
+  .scanner-overlay{
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: none;
+    flex-direction: column;
+    z-index: 70;
+  }
+  .scanner-overlay.visible{ display: flex; }
+  .scanner-top{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    color: var(--white);
+  }
+  .scanner-top span{ font-size: 14px; font-weight: 600; }
+  .scanner-top button{
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: var(--white);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 18px;
+    line-height: 1;
+    font-family: inherit;
+  }
+  #reader{
+    flex: 1;
+    width: 100%;
+  }
+  .scanner-hint{
+    color: rgba(255,255,255,0.75);
+    font-size: 13px;
+    text-align: center;
+    padding: 14px;
+  }
+  .scanner-denied{
+    color: var(--white);
+    padding: 24px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  a{ color: var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <h1>Control de stock</h1>
+    <p>Escaneá o buscá un producto y registrá la diferencia.</p>
+  </header>
+
+  <div class="context-bar" id="contextBar">
+    <div class="info"><b id="ctxSupervisor"></b> · <span id="ctxSucursal"></span></div>
+    <button type="button" id="btnCambiarContexto">Cambiar</button>
+  </div>
+
+  <main>
+
+    <!-- ===================== PASO 1: IDENTIFICACIÓN ===================== -->
+    <section class="screen active" id="screen-identificacion">
+      <div class="card">
+        <h2>Antes de empezar</h2>
+        <p class="card-sub">Completá tus datos para registrar los relevamientos.</p>
+
+        <div class="field">
+          <label for="inputSupervisor">Nombre y apellido</label>
+          <input type="text" id="inputSupervisor" placeholder="Ej: Marcos Ferreira" autocomplete="name">
+        </div>
+
+        <div class="field">
+          <label for="inputSucursal1">Sucursal</label>
+          <input type="text" id="inputSucursal1" placeholder="Escribí para buscar (ej: S6)" autocomplete="off">
+          <p class="hint" id="sucursalHint">Cargando sucursales…</p>
+          <div class="result-list" id="sucursalResultList"></div>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btnContinuar">Continuar</button>
+      </div>
+    </section>
+
+    <!-- ===================== PASO 2: BÚSQUEDA ===================== -->
+    <section class="screen" id="screen-busqueda">
+      <div class="card">
+        <h2>Buscar producto</h2>
+        <p class="card-sub">Escaneá el código o buscalo manualmente.</p>
+
+        <button type="button" class="btn btn-scan" id="btnEscanear">
+          Escanear código
+        </button>
+
+        <div class="divider">o</div>
+
+        <div class="search-row">
+          <input type="text" id="inputBusqueda" placeholder="Código de barras o descripción" inputmode="search">
+          <button type="button" class="btn btn-outline" id="btnBuscar">Buscar</button>
+        </div>
+        <p class="hint" id="busquedaHint"></p>
+
+        <div class="result-list" id="resultList"></div>
+      </div>
+    </section>
+
+    <!-- ===================== PASO 3: PRODUCTO Y CONTEO ===================== -->
+    <section class="screen" id="screen-producto">
+      <div class="card">
+        <h2>Producto encontrado</h2>
+        <div class="readonly-grid">
+          <div class="readonly-item"><span class="k">Sucursal</span><span class="v" id="pSucursal"></span></div>
+          <div class="readonly-item"><span class="k">Código de barras</span><span class="v" id="pCodigo"></span></div>
+          <div class="readonly-item"><span class="k">Descripción</span><span class="v" id="pDescripcion"></span></div>
+          <div class="readonly-item"><span class="k">Stock en sistema</span><span class="v" id="pStock"></span></div>
+        </div>
+        <button type="button" class="btn-text" id="btnOtroProducto">Buscar otro producto</button>
+      </div>
+
+      <div class="card">
+        <h2>Conteo físico</h2>
+
+        <div class="field">
+          <label for="inputStockFisico">Stock físico encontrado</label>
+          <input type="number" id="inputStockFisico" inputmode="numeric" min="0" step="1" placeholder="0">
+        </div>
+
+        <div class="diff-row" id="diffRow" style="display:none;">
+          <span class="badge" id="badgeResultado"></span>
+          <span class="diff-value" id="diffValue"></span>
+        </div>
+
+        <div class="field" id="fieldMotivo" style="display:none;">
+          <label for="selectMotivo">Motivo de la diferencia</label>
+          <select id="selectMotivo">
+            <option value="">Seleccioná un motivo</option>
+            <option value="Faltante en salón">Faltante en salón</option>
+            <option value="Producto encontrado en depósito">Producto encontrado en depósito</option>
+            <option value="Producto dañado">Producto dañado</option>
+            <option value="Producto vencido">Producto vencido</option>
+            <option value="Error de stock en sistema">Error de stock en sistema</option>
+            <option value="Mercadería pendiente de ingreso">Mercadería pendiente de ingreso</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="inputObservacion" id="labelObservacion">Observación (opcional)</label>
+          <textarea id="inputObservacion" placeholder="Detalle adicional si hace falta"></textarea>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Barra de acción fija, cambia según la pantalla activa -->
+  <div class="action-bar" id="actionBar" style="display:none;">
+    <button type="button" class="btn btn-primary" id="btnGuardar">Guardar relevamiento</button>
+  </div>
+
+</div>
+
+<!-- Overlay de carga -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner-box">
+    <div class="spinner"></div>
+    <span id="loadingText">Cargando…</span>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toast-container"></div>
+
+<!-- Modal de escaneo -->
+<div class="scanner-overlay" id="scannerOverlay">
+  <div class="scanner-top">
+    <span>Escaneando código</span>
+    <button type="button" id="btnCerrarScanner">✕</button>
+  </div>
+  <div id="reader"></div>
+  <p class="scanner-hint" id="scannerHint">Apuntá la cámara al código de barras.</p>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+(function(){
+
+  // ------------------------------------------------------------
+  // CONEXIÓN CON EL BACKEND (Google Apps Script publicado como API)
+  // ------------------------------------------------------------
+  // Pegá acá la URL de tu implementación de Apps Script (termina en /exec).
+  // Es la misma URL que usabas antes para abrir la app; ahora en vez de
+  // abrirla directamente, esta página le habla por internet.
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQYxJnfPPxE5IA2SYuUzE2DJNigCG0f2nVzvmrMSBvDxqHrF1Wc1_7EI3Ie9lriVdJ/exec';
+
+  function callApiGet(params){
+    const query = Object.keys(params)
+      .map(function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(params[k] === undefined || params[k] === null ? '' : params[k]); })
+      .join('&');
+    return fetch(APPS_SCRIPT_URL + '?' + query)
+      .then(function(r){ return r.json(); });
+  }
+
+  function callApiPost(action, payload){
+    // Content-Type: text/plain evita que el navegador dispare un
+    // "preflight" CORS que Apps Script no sabe responder.
+    return fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, payload: payload })
+    }).then(function(r){ return r.json(); });
+  }
+
+  // ------------------------------------------------------------
+  // ESTADO DE LA SESIÓN (se mantiene mientras la página no se recarga)
+  // ------------------------------------------------------------
+  const state = {
+    supervisor: '',
+    sucursal: '',
+    producto: null // { sucursal, codigo, descripcion, stock }
+  };
+
+  // ------------------------------------------------------------
+  // REFERENCIAS AL DOM
+  // ------------------------------------------------------------
+  const screens = {
+    identificacion: document.getElementById('screen-identificacion'),
+    busqueda: document.getElementById('screen-busqueda'),
+    producto: document.getElementById('screen-producto')
+  };
+
+  const contextBar = document.getElementById('contextBar');
+  const ctxSupervisor = document.getElementById('ctxSupervisor');
+  const ctxSucursal = document.getElementById('ctxSucursal');
+  const btnCambiarContexto = document.getElementById('btnCambiarContexto');
+
+  const inputSupervisor = document.getElementById('inputSupervisor');
+  const inputSucursal1 = document.getElementById('inputSucursal1');
+  const sucursalHint = document.getElementById('sucursalHint');
+  const sucursalResultList = document.getElementById('sucursalResultList');
+  const btnContinuar = document.getElementById('btnContinuar');
+
+  const btnEscanear = document.getElementById('btnEscanear');
+  const inputBusqueda = document.getElementById('inputBusqueda');
+  const btnBuscar = document.getElementById('btnBuscar');
+  const busquedaHint = document.getElementById('busquedaHint');
+  const resultList = document.getElementById('resultList');
+
+  const pSucursal = document.getElementById('pSucursal');
+  const pCodigo = document.getElementById('pCodigo');
+  const pDescripcion = document.getElementById('pDescripcion');
+  const pStock = document.getElementById('pStock');
+  const btnOtroProducto = document.getElementById('btnOtroProducto');
+
+  const inputStockFisico = document.getElementById('inputStockFisico');
+  const diffRow = document.getElementById('diffRow');
+  const badgeResultado = document.getElementById('badgeResultado');
+  const diffValue = document.getElementById('diffValue');
+  const fieldMotivo = document.getElementById('fieldMotivo');
+  const selectMotivo = document.getElementById('selectMotivo');
+  const inputObservacion = document.getElementById('inputObservacion');
+  const labelObservacion = document.getElementById('labelObservacion');
+
+  const actionBar = document.getElementById('actionBar');
+  const btnGuardar = document.getElementById('btnGuardar');
+
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+
+  const scannerOverlay = document.getElementById('scannerOverlay');
+  const btnCerrarScanner = document.getElementById('btnCerrarScanner');
+  const scannerHint = document.getElementById('scannerHint');
+
+  let currentDiferencia = null; // se recalcula localmente para habilitar/deshabilitar UI
+  let html5QrCode = null;
+  let scanning = false;
+
+  // ------------------------------------------------------------
+  // UTILIDADES DE UI
+  // ------------------------------------------------------------
+  function showScreen(name){
+    Object.keys(screens).forEach(function(key){
+      screens[key].classList.toggle('active', key === name);
+    });
+    actionBar.style.display = (name === 'producto') ? 'block' : 'none';
+  }
+
+  function showLoading(text){
+    loadingText.textContent = text || 'Cargando…';
+    loadingOverlay.classList.add('visible');
+  }
+  function hideLoading(){
+    loadingOverlay.classList.remove('visible');
+  }
+
+  function toast(message, type){
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = 'toast' + (type ? ' ' + type : '');
+    el.textContent = message;
+    container.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add('show'); });
+    setTimeout(function(){
+      el.classList.remove('show');
+      setTimeout(function(){ el.remove(); }, 250);
+    }, 3200);
+  }
+
+  function normalize(text){
+    return (text || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  // ------------------------------------------------------------
+  // PASO 1: IDENTIFICACIÓN (sucursal con buscador tipo autocompletar)
+  // ------------------------------------------------------------
+  let sucursalesCache = [];   // todas las sucursales, cargadas una sola vez
+  let sucursalElegida = '';   // sucursal confirmada (tocada de la lista)
+
+  function cargarSucursales(){
+    sucursalHint.textContent = 'Cargando sucursales…';
+    callApiGet({ action: 'getSucursales' })
+      .then(function(res){
+        if (!res || !res.ok){
+          sucursalHint.textContent = 'No se pudieron cargar las sucursales.';
+          toast('No se pudieron cargar las sucursales.', 'error');
+          return;
+        }
+        sucursalesCache = res.sucursales || [];
+        sucursalHint.textContent = sucursalesCache.length
+          ? 'Escribí unas letras o el código de la sucursal (ej: S6).'
+          : 'No hay sucursales cargadas en la hoja de Stock.';
+      })
+      .catch(function(err){
+        sucursalHint.textContent = 'Error al cargar sucursales.';
+        toast('Error al cargar sucursales: ' + err.message, 'error');
+      });
+  }
+
+  function renderSucursalResultados(query){
+    const q = normalize(query);
+
+    const matches = (q
+      ? sucursalesCache.filter(function(s){ return normalize(s).indexOf(q) === 0; }) // empieza con lo tipeado
+      : sucursalesCache // sin texto: se lista todo para poder desplazarse
+    ).slice(0, 40);
+
+    if (!matches.length){
+      sucursalResultList.innerHTML = q
+        ? '<p class="empty-note">No hay sucursales que empiecen así.</p>'
+        : '<p class="empty-note">No hay sucursales cargadas.</p>';
+      return;
+    }
+
+    sucursalResultList.innerHTML = matches.map(function(s, i){
+      return '<button type="button" class="result-item" data-index="' + i + '">' +
+        '<div class="desc">' + escapeHtml(s) + '</div>' +
+        '</button>';
+    }).join('');
+
+    Array.prototype.forEach.call(sucursalResultList.querySelectorAll('.result-item'), function(btn){
+      btn.addEventListener('click', function(){
+        const idx = Number(btn.getAttribute('data-index'));
+        elegirSucursal(matches[idx]);
+      });
+    });
+  }
+
+  function elegirSucursal(nombre){
+    sucursalElegida = nombre;
+    inputSucursal1.value = nombre;
+    sucursalResultList.innerHTML = '';
+  }
+
+  inputSucursal1.addEventListener('input', function(){
+    // si el usuario sigue editando, la selección anterior deja de valer
+    if (inputSucursal1.value !== sucursalElegida) sucursalElegida = '';
+    renderSucursalResultados(inputSucursal1.value);
+  });
+
+  inputSucursal1.addEventListener('focus', function(){
+    renderSucursalResultados(inputSucursal1.value);
+  });
+
+  document.addEventListener('click', function(e){
+    if (!e.target.closest('#inputSucursal1') && !e.target.closest('#sucursalResultList')){
+      sucursalResultList.innerHTML = '';
+    }
+  });
+
+  btnContinuar.addEventListener('click', function(){
+    const supervisor = inputSupervisor.value.trim();
+
+    if (!supervisor){
+      toast('Ingresá tu nombre y apellido.', 'error');
+      inputSupervisor.focus();
+      return;
+    }
+    if (!sucursalElegida){
+      toast('Elegí una sucursal de la lista.', 'error');
+      inputSucursal1.focus();
+      return;
+    }
+
+    state.supervisor = supervisor;
+    state.sucursal = sucursalElegida;
+
+    ctxSupervisor.textContent = supervisor;
+    ctxSucursal.textContent = sucursalElegida;
+    contextBar.classList.add('visible');
+
+    showScreen('busqueda');
+    setTimeout(function(){ inputBusqueda.focus(); }, 150);
+  });
+
+  btnCambiarContexto.addEventListener('click', function(){
+    inputSucursal1.value = sucursalElegida;
+    showScreen('identificacion');
+  });
+
+  // ------------------------------------------------------------
+  // PASO 2: BÚSQUEDA (se filtra sola mientras escribís, sin botón)
+  // ------------------------------------------------------------
+  let debounceTimer = null;
+  let busquedaEnCurso = 0; // evita que una respuesta vieja pise a una más nueva
+
+  function limpiarResultados(){
+    resultList.innerHTML = '';
+    busquedaHint.textContent = '';
+  }
+
+  function ejecutarBusqueda(){
+    const texto = inputBusqueda.value.trim();
+    const idBusqueda = ++busquedaEnCurso;
+    busquedaHint.textContent = 'Buscando…';
+
+    callApiGet({ action: 'buscarProductos', sucursal: state.sucursal, texto: texto })
+      .then(function(res){
+        if (idBusqueda !== busquedaEnCurso) return; // el usuario ya siguió escribiendo
+        if (!res || !res.ok){
+          busquedaHint.textContent = (res && res.mensaje) || 'Error al buscar.';
+          return;
+        }
+        renderResultados(res.resultados, texto);
+      })
+      .catch(function(err){
+        if (idBusqueda !== busquedaEnCurso) return;
+        busquedaHint.textContent = 'Error al buscar: ' + err.message;
+      });
+  }
+
+  function renderResultados(resultados, textoBuscado){
+    if (!resultados || !resultados.length){
+      resultList.innerHTML = '';
+      busquedaHint.textContent = textoBuscado
+        ? 'Sin resultados para esa búsqueda.'
+        : 'No hay productos cargados para esta sucursal.';
+      return;
+    }
+
+    // Si hay una sola coincidencia y es exactamente el código escaneado/tipeado,
+    // lo seleccionamos directo sin que el usuario tenga que tocarlo.
+    if (textoBuscado && resultados.length === 1 && resultados[0].codigo === textoBuscado){
+      seleccionarProducto({
+        sucursal: state.sucursal,
+        codigo: resultados[0].codigo,
+        descripcion: resultados[0].descripcion,
+        stock: resultados[0].stock
+      });
+      return;
+    }
+
+    busquedaHint.textContent = resultados.length >= 30
+      ? 'Mostrando los primeros 30 resultados. Afiná la búsqueda si no aparece.'
+      : '';
+
+    resultList.innerHTML = resultados.map(function(r, i){
+      return '<button type="button" class="result-item" data-index="' + i + '">' +
+        '<div class="desc">' + escapeHtml(r.descripcion) + '</div>' +
+        '<div class="meta">Código ' + escapeHtml(r.codigo) + ' · Stock sistema: ' + r.stock + '</div>' +
+        '</button>';
+    }).join('');
+
+    Array.prototype.forEach.call(resultList.querySelectorAll('.result-item'), function(btn){
+      btn.addEventListener('click', function(){
+        const idx = Number(btn.getAttribute('data-index'));
+        const r = resultados[idx];
+        seleccionarProducto({
+          sucursal: state.sucursal,
+          codigo: r.codigo,
+          descripcion: r.descripcion,
+          stock: r.stock
+        });
+      });
+    });
+  }
+
+  inputBusqueda.addEventListener('input', function(){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(ejecutarBusqueda, 300);
+  });
+
+  inputBusqueda.addEventListener('focus', function(){
+    clearTimeout(debounceTimer);
+    ejecutarBusqueda();
+  });
+
+  inputBusqueda.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      clearTimeout(debounceTimer);
+      ejecutarBusqueda();
+    }
+  });
+
+  btnBuscar.addEventListener('click', function(){
+    clearTimeout(debounceTimer);
+    ejecutarBusqueda();
+  });
+
+  function seleccionarProducto(producto){
+    state.producto = producto;
+    pSucursal.textContent = producto.sucursal;
+    pCodigo.textContent = producto.codigo;
+    pDescripcion.textContent = producto.descripcion;
+    pStock.textContent = producto.stock;
+
+    inputStockFisico.value = '';
+    inputObservacion.value = '';
+    selectMotivo.value = '';
+    diffRow.style.display = 'none';
+    fieldMotivo.style.display = 'none';
+    labelObservacion.textContent = 'Observación (opcional)';
+    currentDiferencia = null;
+
+    inputBusqueda.value = '';
+    limpiarResultados();
+
+    showScreen('producto');
+    setTimeout(function(){ inputStockFisico.focus(); }, 150);
+  }
+
+  btnOtroProducto.addEventListener('click', function(){
+    state.producto = null;
+    showScreen('busqueda');
+    setTimeout(function(){ inputBusqueda.focus(); }, 150);
+  });
+
+  // ------------------------------------------------------------
+  // ESCANEO DE CÓDIGO DE BARRAS (html5-qrcode)
+  // ------------------------------------------------------------
+  const FORMATOS_SOPORTADOS = (window.Html5QrcodeSupportedFormats) ? [
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,
+    Html5QrcodeSupportedFormats.CODE_128
+  ] : undefined;
+
+  function abrirScanner(){
+    scannerOverlay.classList.add('visible');
+    scannerHint.textContent = 'Apuntá la cámara al código de barras.';
+
+    try{
+      html5QrCode = new Html5Qrcode('reader', FORMATOS_SOPORTADOS ? { formatsToSupport: FORMATOS_SOPORTADOS } : undefined);
+    }catch(e){
+      mostrarErrorCamara();
+      return;
+    }
+
+    const config = { fps: 10, qrbox: { width: 260, height: 140 } };
+
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      config,
+      onScanSuccess,
+      function(){ /* error de lectura frame a frame: se ignora */ }
+    ).then(function(){
+      scanning = true;
+    }).catch(function(err){
+      mostrarErrorCamara();
+    });
+  }
+
+  function mostrarErrorCamara(){
+    const readerEl = document.getElementById('reader');
+    readerEl.innerHTML = '';
+    scannerHint.innerHTML =
+      '<div class="scanner-denied">No se pudo acceder a la cámara.<br>' +
+      'Revisá los permisos de cámara del navegador o buscá el producto manualmente.</div>';
+  }
+
+  function onScanSuccess(decodedText){
+    if (!scanning) return; // evita lecturas duplicadas
+    scanning = false;
+    cerrarScanner();
+    clearTimeout(debounceTimer);
+    inputBusqueda.value = decodedText.trim();
+    ejecutarBusqueda();
+  }
+
+  function cerrarScanner(){
+    scannerOverlay.classList.remove('visible');
+    if (html5QrCode && scanning){
+      html5QrCode.stop().catch(function(){ /* ignorar */ });
+    }
+    scanning = false;
+    document.getElementById('reader').innerHTML = '';
+  }
+
+  btnEscanear.addEventListener('click', function(){
+    if (!state.sucursal){
+      toast('Seleccioná una sucursal antes de escanear.', 'error');
+      return;
+    }
+    abrirScanner();
+  });
+  btnCerrarScanner.addEventListener('click', cerrarScanner);
+
+  // ------------------------------------------------------------
+  // PASO 3: CONTEO FÍSICO
+  // ------------------------------------------------------------
+  inputStockFisico.addEventListener('input', function(){
+    const raw = inputStockFisico.value;
+    if (raw === ''){
+      diffRow.style.display = 'none';
+      fieldMotivo.style.display = 'none';
+      currentDiferencia = null;
+      return;
+    }
+
+    const num = Number(raw);
+    if (!Number.isInteger(num) || num < 0){
+      diffRow.style.display = 'none';
+      fieldMotivo.style.display = 'none';
+      currentDiferencia = null;
+      return;
+    }
+
+    const stockSistema = Number(state.producto.stock) || 0;
+    const diferencia = num - stockSistema;
+    currentDiferencia = diferencia;
+
+    diffRow.style.display = 'flex';
+    diffValue.textContent = 'Diferencia: ' + (diferencia > 0 ? '+' : '') + diferencia;
+
+    badgeResultado.className = 'badge';
+    if (diferencia === 0){
+      badgeResultado.classList.add('badge-correcto');
+      badgeResultado.textContent = 'Correcto';
+      fieldMotivo.style.display = 'none';
+      selectMotivo.value = '';
+    } else if (diferencia < 0){
+      badgeResultado.classList.add('badge-faltante');
+      badgeResultado.textContent = 'Faltante';
+      fieldMotivo.style.display = 'block';
+    } else {
+      badgeResultado.classList.add('badge-sobrante');
+      badgeResultado.textContent = 'Sobrante';
+      fieldMotivo.style.display = 'block';
+    }
+
+    actualizarObligatoriedadObservacion();
+  });
+
+  selectMotivo.addEventListener('change', actualizarObligatoriedadObservacion);
+
+  function actualizarObligatoriedadObservacion(){
+    if (selectMotivo.value === 'Otro'){
+      labelObservacion.textContent = 'Observación (obligatoria)';
+    } else {
+      labelObservacion.textContent = 'Observación (opcional)';
+    }
+  }
+
+  // ------------------------------------------------------------
+  // GUARDADO
+  // ------------------------------------------------------------
+  let guardando = false;
+
+  btnGuardar.addEventListener('click', function(){
+    if (guardando) return; // protección contra doble clic
+
+    if (!state.producto){
+      toast('Buscá un producto antes de guardar.', 'error');
+      return;
+    }
+
+    const stockFisicoRaw = inputStockFisico.value;
+    if (stockFisicoRaw === '' || !Number.isInteger(Number(stockFisicoRaw)) || Number(stockFisicoRaw) < 0){
+      toast('Ingresá un stock físico válido (entero, mayor o igual a 0).', 'error');
+      inputStockFisico.focus();
+      return;
+    }
+
+    const diferencia = Number(stockFisicoRaw) - Number(state.producto.stock);
+    const motivo = selectMotivo.value;
+    const observacion = inputObservacion.value.trim();
+
+    if (diferencia !== 0){
+      if (!motivo){
+        toast('Seleccioná el motivo de la diferencia.', 'error');
+        return;
+      }
+      if (motivo === 'Otro' && !observacion){
+        toast('La observación es obligatoria cuando el motivo es "Otro".', 'error');
+        inputObservacion.focus();
+        return;
+      }
+    }
+
+    const payload = {
+      supervisor: state.supervisor,
+      sucursal: state.sucursal,
+      codigo: state.producto.codigo,
+      stockFisico: Number(stockFisicoRaw),
+      motivo: motivo,
+      observacion: observacion
+    };
+
+    guardando = true;
+    btnGuardar.disabled = true;
+    showLoading('Guardando relevamiento…');
+
+    callApiPost('guardarRelevamiento', payload)
+      .then(function(res){
+        hideLoading();
+        guardando = false;
+        btnGuardar.disabled = false;
+
+        if (!res || !res.ok){
+          toast((res && res.mensaje) || 'No se pudo guardar el relevamiento.', 'error');
+          return;
+        }
+
+        toast(res.mensaje, 'success');
+
+        // Limpiar sólo los datos del producto y del conteo.
+        state.producto = null;
+        showScreen('busqueda');
+        setTimeout(function(){ inputBusqueda.focus(); }, 150);
+      })
+      .catch(function(err){
+        hideLoading();
+        guardando = false;
+        btnGuardar.disabled = false;
+        toast('Error al guardar: ' + err.message, 'error');
+      });
+  });
+
+  // ------------------------------------------------------------
+  // AUXILIARES
+  // ------------------------------------------------------------
+  function escapeHtml(text){
+    return (text || '').toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ------------------------------------------------------------
+  // INICIO
+  // ------------------------------------------------------------
+  cargarSucursales();
+
+})();
+</script>
+
+</body>
+</html>
