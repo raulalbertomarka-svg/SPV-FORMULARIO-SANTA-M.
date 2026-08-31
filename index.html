@@ -570,27 +570,61 @@
   // ------------------------------------------------------------
   // CONEXIÓN CON EL BACKEND (Google Apps Script publicado como API)
   // ------------------------------------------------------------
-  // Pegá acá la URL de tu implementación de Apps Script (termina en /exec).
-  // Es la misma URL que usabas antes para abrir la app; ahora en vez de
-  // abrirla directamente, esta página le habla por internet.
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQYxJnfPPxE5IA2SYuUzE2DJNigCG0f2nVzvmrMSBvDxqHrF1Wc1_7EI3Ie9lriVdJ/exec';
 
+  // Se usa JSONP (una etiqueta <script> que se agrega y se quita sola)
+  // en vez de fetch(), porque el navegador bloquea por CORS la lectura
+  // de la respuesta cuando la pide una página de otro dominio (como
+  // github.io) hacia Apps Script. Con JSONP ese bloqueo no aplica.
+  let jsonpContador = 0;
+
+  function callApiJsonp(params){
+    return new Promise(function(resolve, reject){
+      const nombreCallback = 'jsonpCb_' + (++jsonpContador) + '_' + Date.now();
+      const script = document.createElement('script');
+      let resuelto = false;
+
+      function limpiar(){
+        delete window[nombreCallback];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[nombreCallback] = function(data){
+        resuelto = true;
+        limpiar();
+        resolve(data);
+      };
+
+      script.onerror = function(){
+        if (resuelto) return;
+        limpiar();
+        reject(new Error('No se pudo conectar con el servidor.'));
+      };
+
+      const query = Object.keys(params)
+        .map(function(k){
+          const v = (params[k] === undefined || params[k] === null) ? '' : params[k];
+          return encodeURIComponent(k) + '=' + encodeURIComponent(v);
+        })
+        .join('&');
+
+      script.src = APPS_SCRIPT_URL + '?' + query + '&callback=' + nombreCallback;
+      document.body.appendChild(script);
+
+      setTimeout(function(){
+        if (resuelto) return;
+        limpiar();
+        reject(new Error('Tiempo de espera agotado.'));
+      }, 15000);
+    });
+  }
+
   function callApiGet(params){
-    const query = Object.keys(params)
-      .map(function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(params[k] === undefined || params[k] === null ? '' : params[k]); })
-      .join('&');
-    return fetch(APPS_SCRIPT_URL + '?' + query)
-      .then(function(r){ return r.json(); });
+    return callApiJsonp(params);
   }
 
   function callApiPost(action, payload){
-    // Content-Type: text/plain evita que el navegador dispare un
-    // "preflight" CORS que Apps Script no sabe responder.
-    return fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: action, payload: payload })
-    }).then(function(r){ return r.json(); });
+    return callApiJsonp({ action: action, payload: JSON.stringify(payload) });
   }
 
   // ------------------------------------------------------------
