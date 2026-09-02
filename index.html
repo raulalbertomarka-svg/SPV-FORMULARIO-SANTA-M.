@@ -615,7 +615,7 @@
         if (resuelto) return;
         limpiar();
         reject(new Error('Tiempo de espera agotado.'));
-      }, 30000);
+      }, 40000);
     });
   }
 
@@ -737,8 +737,11 @@
   let sucursalesCache = [];   // todas las sucursales, cargadas una sola vez
   let sucursalElegida = '';   // sucursal confirmada (tocada de la lista)
 
-  function cargarSucursales(){
-    sucursalHint.textContent = 'Cargando sucursales…';
+  function cargarSucursales(esReintento){
+    sucursalHint.textContent = esReintento
+      ? 'Cargando sucursales… (el servidor está arrancando, puede tardar unos segundos)'
+      : 'Cargando sucursales…';
+
     callApiGet({ action: 'getSucursales' })
       .then(function(res){
         if (!res || !res.ok){
@@ -752,6 +755,12 @@
           : 'No hay sucursales cargadas en la hoja de Stock.';
       })
       .catch(function(err){
+        // Primer intento fallido: puede ser que Apps Script recién esté
+        // "despertando". Probamos una vez más antes de mostrar error.
+        if (!esReintento){
+          setTimeout(function(){ cargarSucursales(true); }, 1500);
+          return;
+        }
         sucursalHint.textContent = 'Error al cargar sucursales.';
         toast('Error al cargar sucursales: ' + err.message, 'error');
       });
