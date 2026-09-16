@@ -31,6 +31,8 @@
     color: var(--ink);
     font-family: 'IBM Plex Sans', -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body{
@@ -559,6 +561,7 @@
         }
         productos = data;
         searchHint.textContent = productos.length + " productos disponibles en el catálogo";
+        renderResultados(searchInput.value.trim().toLowerCase());
       })
       .catch(function(err){
         searchHint.textContent = "No se pudo conectar con la planilla. Revisá tu conexión.";
@@ -609,21 +612,26 @@
   function renderResultados(query){
     resultsList.innerHTML = "";
 
-    if(!query){
+    var listaBase = productos;
+
+    if(query){
+      listaBase = productos.filter(function(p){
+        return p.codigo.toLowerCase().indexOf(query) !== -1 ||
+               p.descripcion.toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    if(productos.length === 0){
+      resultsList.innerHTML = '<div class="empty-note">El catálogo todavía no cargó. Revisá tu conexión.</div>';
       return;
     }
 
-    var coincidencias = productos.filter(function(p){
-      return p.codigo.toLowerCase().indexOf(query) !== -1 ||
-             p.descripcion.toLowerCase().indexOf(query) !== -1;
-    }).slice(0, 30);
-
-    if(coincidencias.length === 0){
+    if(listaBase.length === 0){
       resultsList.innerHTML = '<div class="empty-note">No se encontraron productos con "' + escapeHtml(query) + '".</div>';
       return;
     }
 
-    coincidencias.forEach(function(p){
+    listaBase.forEach(function(p){
       var row = document.createElement('div');
       row.className = 'product-row';
       row.innerHTML =
