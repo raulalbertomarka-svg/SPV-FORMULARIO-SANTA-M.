@@ -178,9 +178,14 @@
     padding: 14px 18px 10px;
     background: var(--paper);
     position: sticky;
-    top: 66px;
+    top: 0;
     z-index: 4;
     border-bottom: 1px solid var(--line);
+  }
+
+  @media (max-width: 380px){
+    .topbar{ flex-direction: column; align-items: flex-start; gap: 10px; }
+    .topbar-change{ align-self: flex-end; margin-top: -34px; }
   }
 
   .search-wrap input{
@@ -531,7 +536,17 @@
     if(savedSup) inputSupervisor.value = savedSup;
     if(savedSuc) inputSucursal.value = savedSuc;
     cargarProductos();
+    ajustarStickyHeader();
+    window.addEventListener('resize', ajustarStickyHeader);
   });
+
+  function ajustarStickyHeader(){
+    var topbar = document.querySelector('.topbar');
+    var searchWrap = document.querySelector('.search-wrap');
+    if(topbar && searchWrap){
+      searchWrap.style.top = topbar.offsetHeight + 'px';
+    }
+  }
 
   function cargarProductos(){
     searchHint.textContent = "Cargando catálogo...";
@@ -571,6 +586,7 @@
 
     loginScreen.classList.add('hidden');
     appScreen.classList.add('active');
+    ajustarStickyHeader();
     searchInput.focus();
   });
 
