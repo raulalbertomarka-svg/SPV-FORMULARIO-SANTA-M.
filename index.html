@@ -872,7 +872,9 @@
         if(data.success){
           mostrarToast("Relevamiento enviado (" + data.filasAgregadas + " productos)", "success");
           carrito = [];
+          searchInput.value = "";
           renderCarrito();
+          renderResultados("");
         } else {
           mostrarToast("Error al enviar: " + (data.error || "desconocido"), "error");
         }
