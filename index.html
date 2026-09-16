@@ -248,6 +248,20 @@
     line-height:1.5;
   }
 
+  .btn-add-manual{
+    width:100%;
+    text-align:left;
+    padding: 12px 14px;
+    background: #F0EEE7;
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy-dark);
+    cursor:pointer;
+    margin-bottom: 10px;
+  }
+
   .cart-row{
     background: var(--panel);
     border: 1px solid var(--line);
@@ -293,7 +307,10 @@
     max-width: 640px;
     margin: 0 auto;
     box-shadow: 0 -6px 16px rgba(0,0,0,0.05);
+    display: none;
   }
+
+  .bottom-bar.visible{ display:block; }
 
   .bottom-bar-inner{ max-width: 640px; margin:0 auto; }
 
@@ -455,6 +472,7 @@
 
     <div class="content">
       <div class="section-title">Resultados</div>
+      <button class="btn-add-manual" id="btnAddManual">+ Agregar producto que no está en el catálogo</button>
       <div class="results-list" id="resultsList"></div>
 
       <div class="section-title" id="cartTitle" style="display:none;">Relevado en esta sesión</div>
@@ -462,10 +480,10 @@
     </div>
   </div>
 
-  <div class="bottom-bar" id="bottomBar" style="display:none;">
+  <div class="bottom-bar" id="bottomBar">
     <div class="bottom-bar-inner">
-      <div class="bottom-count" id="bottomCount">0 productos cargados</div>
-      <button class="btn-submit" id="btnSubmit">Enviar relevamiento</button>
+      <div class="bottom-count" id="bottomCount">Todavía no cargaste productos</div>
+      <button class="btn-submit" id="btnSubmit" disabled>Enviar relevamiento</button>
     </div>
   </div>
 
@@ -489,6 +507,36 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Modal producto manual -->
+  <div class="modal-backdrop" id="modalManualBackdrop">
+    <div class="modal">
+      <div class="pdesc" style="margin-bottom:16px;">Producto fuera del catálogo</div>
+
+      <div class="field">
+        <label for="manualCodigo">Código de barra</label>
+        <input type="text" id="manualCodigo" placeholder="Ej: 7791234567890" inputmode="numeric">
+      </div>
+
+      <div class="field" style="margin-bottom:16px;">
+        <label for="manualDescripcion">Descripción</label>
+        <input type="text" id="manualDescripcion" placeholder="Nombre del producto">
+      </div>
+
+      <div class="form-error" id="manualError"></div>
+
+      <div class="qty-control">
+        <button class="qty-btn" id="manualQtyMinus">−</button>
+        <div class="qty-value" id="manualQtyValue">1</div>
+        <button class="qty-btn" id="manualQtyPlus">+</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btnCancelManual">Cancelar</button>
+        <button class="btn-primary" id="btnConfirmManual">Agregar</button>
+      </div>
+    </div>
+  </div>
 
 <script>
   // ---------- CONFIGURACIÓN ----------
@@ -530,6 +578,17 @@
   var btnCancelQty = document.getElementById('btnCancelQty');
   var btnConfirmQty = document.getElementById('btnConfirmQty');
   var toast = document.getElementById('toast');
+  var btnAddManual = document.getElementById('btnAddManual');
+  var modalManualBackdrop = document.getElementById('modalManualBackdrop');
+  var manualCodigo = document.getElementById('manualCodigo');
+  var manualDescripcion = document.getElementById('manualDescripcion');
+  var manualError = document.getElementById('manualError');
+  var manualQtyValue = document.getElementById('manualQtyValue');
+  var manualQtyMinus = document.getElementById('manualQtyMinus');
+  var manualQtyPlus = document.getElementById('manualQtyPlus');
+  var btnCancelManual = document.getElementById('btnCancelManual');
+  var btnConfirmManual = document.getElementById('btnConfirmManual');
+  var manualQtyActual = 1;
 
   // ---------- INICIO ----------
   window.addEventListener('DOMContentLoaded', function(){
@@ -589,6 +648,7 @@
 
     loginScreen.classList.add('hidden');
     appScreen.classList.add('active');
+    bottomBar.classList.add('visible');
     ajustarStickyHeader();
     searchInput.focus();
   });
@@ -601,6 +661,7 @@
     carrito = [];
     renderCarrito();
     appScreen.classList.remove('active');
+    bottomBar.classList.remove('visible');
     loginScreen.classList.remove('hidden');
   });
 
@@ -696,18 +757,67 @@
     searchInput.focus();
   });
 
+  // ---------- PRODUCTO MANUAL (fuera del catálogo) ----------
+  btnAddManual.addEventListener('click', function(){
+    manualCodigo.value = "";
+    manualDescripcion.value = "";
+    manualError.textContent = "";
+    manualQtyActual = 1;
+    manualQtyValue.textContent = manualQtyActual;
+    modalManualBackdrop.classList.add('active');
+    setTimeout(function(){ manualCodigo.focus(); }, 50);
+  });
+
+  btnCancelManual.addEventListener('click', function(){
+    modalManualBackdrop.classList.remove('active');
+  });
+
+  manualQtyMinus.addEventListener('click', function(){
+    if(manualQtyActual > 1) manualQtyActual--;
+    manualQtyValue.textContent = manualQtyActual;
+  });
+
+  manualQtyPlus.addEventListener('click', function(){
+    manualQtyActual++;
+    manualQtyValue.textContent = manualQtyActual;
+  });
+
+  btnConfirmManual.addEventListener('click', function(){
+    var codigo = manualCodigo.value.trim();
+    var descripcion = manualDescripcion.value.trim();
+
+    if(!codigo || !descripcion){
+      manualError.textContent = "Completá el código y la descripción.";
+      return;
+    }
+    manualError.textContent = "";
+
+    var existente = carrito.find(function(i){ return i.codigo === codigo; });
+    if(existente){
+      existente.cantidad = manualQtyActual;
+      existente.descripcion = descripcion;
+    } else {
+      carrito.push({ codigo: codigo, descripcion: descripcion, cantidad: manualQtyActual });
+    }
+
+    renderCarrito();
+    mostrarToast(descripcion + " agregado", "success");
+    modalManualBackdrop.classList.remove('active');
+  });
+
   // ---------- CARRITO ----------
   function renderCarrito(){
     cartList.innerHTML = "";
 
     if(carrito.length === 0){
       cartTitle.style.display = 'none';
-      bottomBar.style.display = 'none';
+      bottomCount.textContent = "Todavía no cargaste productos";
+      btnSubmit.disabled = true;
       return;
     }
 
     cartTitle.style.display = 'block';
-    bottomBar.style.display = 'block';
+    btnSubmit.disabled = false;
     bottomCount.textContent = carrito.length + (carrito.length === 1 ? " producto cargado" : " productos cargados");
 
     carrito.forEach(function(item, idx){
