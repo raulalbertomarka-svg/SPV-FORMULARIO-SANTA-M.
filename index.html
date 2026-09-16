@@ -231,6 +231,13 @@
 
   .product-row:active{ border-color: var(--navy); }
 
+  .product-row.added{
+    background: #F0F8F3;
+    border-color: #BFE0CC;
+  }
+
+  .product-row.added .padd{ color: var(--good); }
+
   .product-row .pcode{ font-size: 13px; color: var(--ink-soft); }
   .product-row .pdesc{ font-size: 15px; font-weight:500; margin-top: 2px; }
   .product-row .padd{
@@ -694,13 +701,14 @@
 
     listaBase.forEach(function(p){
       var row = document.createElement('div');
-      row.className = 'product-row';
+      var enCarrito = carrito.find(function(i){ return i.codigo === p.codigo; });
+      row.className = 'product-row' + (enCarrito ? ' added' : '');
       row.innerHTML =
         '<div>' +
           '<div class="pcode mono">' + escapeHtml(p.codigo) + '</div>' +
           '<div class="pdesc">' + escapeHtml(p.descripcion) + '</div>' +
         '</div>' +
-        '<div class="padd">Agregar</div>';
+        '<div class="padd">' + (enCarrito ? ('Cargado · ' + enCarrito.cantidad) : 'Agregar') + '</div>';
       row.addEventListener('click', function(){ abrirModalCantidad(p); });
       resultsList.appendChild(row);
     });
@@ -752,9 +760,7 @@
     renderCarrito();
     mostrarToast(productoSeleccionado.descripcion + " agregado", "success");
     cerrarModal();
-    searchInput.value = "";
-    resultsList.innerHTML = "";
-    searchInput.focus();
+    renderResultados(searchInput.value.trim().toLowerCase());
   });
 
   // ---------- PRODUCTO MANUAL (fuera del catálogo) ----------
@@ -838,6 +844,7 @@
         var idx = parseInt(btn.getAttribute('data-idx'), 10);
         carrito.splice(idx, 1);
         renderCarrito();
+        renderResultados(searchInput.value.trim().toLowerCase());
       });
     });
   }
